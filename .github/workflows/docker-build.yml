@@ -22,7 +22,14 @@ jobs:
       - name: Dump docker logs on failure using different shell
         uses: jwalton/gh-docker-logs@v1
         with:
-          shell: '/bin/sh'
+          dest: './logs'
+      - name: Tar logs
+        run: tar cvzf ./logs.tgz ./logs
+      - name: Upload logs to GitHub
+        uses: actions/upload-artifact@master
+        with:
+          name: logs.tgz
+          path: ./logs.tgz
       # - run: docker logs --tail 100 
       - name: Wait for Service to start
         run: while ! curl -s localhost:8000/health; do sleep 1; done
