@@ -2,7 +2,7 @@ name: Docker Build on Push & Pull Request
 
 on: 
   push:
-    branches: [ghworkflow]
+    branches: [workflow]
 
 jobs:
   docker-build:
