@@ -2,7 +2,7 @@ name: Docker Build on Push & Pull Request
 
 on: 
   push:
-    branches: [test]
+    branches: [ghworkflow]
 
 jobs:
   docker-build:
@@ -17,10 +17,10 @@ jobs:
           docker build . --file Dockerfile --build-arg username=${{ secrets.USERNAME }} --build-arg token=${{ secrets.TOKEN }} --tag inbound
       - name: Launch container
         run: docker run -dp 8000:8080 --env-file env.sample inbound
-        timeout-minutes: 5
+        timeout-minutes: 10
       - run: docker ps
       - name: Wait for Service to start
         run: while ! curl -s localhost:8000/health; do sleep 1; done
-        timeout-minutes: 1
+        timeout-minutes: 10
       - name: Check API health
         run: curl -s localhost:8000/health
