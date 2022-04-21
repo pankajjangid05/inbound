@@ -20,8 +20,5 @@ jobs:
         timeout-minutes: 10
       - run: docker ps
       - run: docker logs inbound
-      - name: Wait for Service to start
-        run: while ! curl -s localhost:8000/health; do sleep 1; done
-        timeout-minutes: 3
-      - name: Check API health
-        run: curl -s localhost:8000/health
+      - name: Check health Api
+        run: curl -s 0.0.0.0:8000/health
