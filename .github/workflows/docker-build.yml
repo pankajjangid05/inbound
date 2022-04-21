@@ -19,12 +19,11 @@ jobs:
         run: docker run -dp 8000:8080 --env-file env.sample inbound
         timeout-minutes: 10
       - run: docker ps
-      - name: Dump redis logs
+      - name: Dump docker logs on failure using different shell
+        if: failure()
         uses: jwalton/gh-docker-logs@v1
         with:
-          images: 'inbound'
-          # Only show last 100 lines of each
-          tail: '100'
+          shell: '/bin/sh'
       # - run: docker logs --tail 100 
       - name: Wait for Service to start
         run: while ! curl -s localhost:8000/health; do sleep 1; done
