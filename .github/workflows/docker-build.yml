@@ -19,7 +19,7 @@ jobs:
         run: docker run -dp 8000:8080 --env-file env.sample inbound
         timeout-minutes: 10
       - run: docker ps
-      - run: docker logs test-container
+      - run: docker logs inbound
       - name: Wait for Service to start
         run: while ! curl -s localhost:8000/health; do sleep 1; done
         timeout-minutes: 3
