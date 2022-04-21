@@ -20,7 +20,6 @@ jobs:
         timeout-minutes: 10
       - run: docker ps
       - name: Dump docker logs on failure using different shell
-        if: failure()
         uses: jwalton/gh-docker-logs@v1
         with:
           shell: '/bin/sh'
