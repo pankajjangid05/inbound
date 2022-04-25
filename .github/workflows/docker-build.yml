@@ -20,5 +20,7 @@ jobs:
         timeout-minutes: 10
       - run: docker ps -a
       - run: docker logs inbound
+      - run: ifconfig
       - name: Check health Api
-        run: curl --help
+#        run: curl -s 0.0.0.0:8080/health
+        run: lsof -i -P -n | grep LISTEN
