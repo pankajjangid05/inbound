@@ -20,6 +20,6 @@ jobs:
         timeout-minutes: 10
       - run: docker ps -a
       - run: docker logs inbound
-      - run: docker exec -it inbound /usr/bin/bash
+      - run: docker exec -it inbound /bin/bash
       - name: Check health Api
         run: curl -s 0.0.0.0:8080/health
