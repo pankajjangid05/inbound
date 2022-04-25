@@ -22,5 +22,5 @@ jobs:
       - run: docker logs inbound
       - run: ifconfig
       - name: Check health Api
-#        run: curl -s 0.0.0.0:8080/health
-        run: lsof -i -P -n | grep LISTEN
+        run: curl -s 172.17.0.1:8080/health
+#        run: lsof -i -P -n | grep LISTEN
