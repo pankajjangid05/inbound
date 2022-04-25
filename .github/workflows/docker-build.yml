@@ -21,4 +21,4 @@ jobs:
       - run: docker ps
       - run: docker logs inbound
       - name: Check health Api
-        run: curl -s 0.0.0.0:8000/health
+        run: curl -s 0.0.0.0:8080/health
