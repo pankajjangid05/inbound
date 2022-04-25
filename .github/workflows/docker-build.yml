@@ -2,7 +2,7 @@ name: Docker Build on Push & Pull Request
 
 on: 
   push:
-    branches: [workflow]
+    branches: [workflow1]
 
 jobs:
   docker-build:
