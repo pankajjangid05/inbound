@@ -18,7 +18,9 @@ jobs:
       - name: Launch container
         run: docker run --name inbound -dp 8000:8080 --env-file env.sample inbound 
         timeout-minutes: 10
-      - run: docker ps
+      - run: docker ps -a
       - run: docker logs inbound
+      - run: docker exec -it inbound bash
+      - run: apk add curl
       - name: Check health Api
         run: curl -s 0.0.0.0:8080/health
