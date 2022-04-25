@@ -16,7 +16,7 @@ jobs:
         run: |
           docker build . --file Dockerfile --build-arg username=${{ secrets.USERNAME }} --build-arg token=${{ secrets.TOKEN }} --tag inbound
       - name: Launch container
-        run: docker run --name inbound -dp 0.0.0.0:8080:8080 --env-file env.sample inbound
+        run: docker run --name inbound -dp 0.0.0.0:8080:8080 --env-file env.sample inbound /bin/bash
         timeout-minutes: 10
       - run: docker ps -a
       - run: docker logs inbound
