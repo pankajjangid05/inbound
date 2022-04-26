@@ -16,10 +16,9 @@ jobs:
         run: |
           docker build . --file Dockerfile --build-arg username=${{ secrets.USERNAME }} --build-arg token=${{ secrets.TOKEN }} --tag inbound
       - name: Launch container
-        run: docker run --name inbound -dp 8080:8080 --env-file env.sample inbound
+        run: docker run --name inbound -dp --env-file env.sample inbound
         timeout-minutes: 10
       - run: docker ps -a
       - run: docker logs inbound
-#      - run: telnet 127.0.0.1 8080
       - name: Check health Api
         run: curl -s http://127.0.0.1:8080/health
