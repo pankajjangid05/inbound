@@ -15,8 +15,10 @@ jobs:
       - name: Build the tagged Docker image
         run: |
           docker build . --file Dockerfile --build-arg username=${{ secrets.USERNAME }} --build-arg token=${{ secrets.TOKEN }} --tag inbound
-      - name: Create redis container
+      - name: Create Redis Container
         run: docker run --name redis -d --restart=always --publish 6379:6379 --volume /srv/docker/redis:/var/lib/redis redis:6.2-alpine
+      - name: Create Cassandra Container
+        run: docker run -d --name cassandra-docker -p 9092:9092 cassandra
 #      - name: Launch Redis
 #        run: docker exec
       - run: docker ps -a
