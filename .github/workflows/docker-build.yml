@@ -20,7 +20,6 @@ jobs:
         timeout-minutes: 10
       - run: docker ps -a
       - run: docker logs inbound
-      - run: telnet 127.0.0.1 8080
+#      - run: telnet 127.0.0.1 8080
       - name: Check health Api
-        run: curl -s http://172.17.0.1:8080/health
-#        run: lsof -i -P -n | grep LISTEN
+        run: curl -s http://127.0.0.1:8080/health
