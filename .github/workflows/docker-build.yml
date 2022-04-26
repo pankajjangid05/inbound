@@ -16,9 +16,9 @@ jobs:
         run: |
           docker build . --file Dockerfile --build-arg username=${{ secrets.USERNAME }} --build-arg token=${{ secrets.TOKEN }} --tag inbound
       - name: Create redis container
-        run: docker run --rm --name redis redis:6.2-alpine redis-server --loglevel warning
-      - name: Launch Redis
-        run: docker exec -it redis redis-cli
+        run: docker run --name redis -d --restart=always --publish 6377:6377 --volume /srv/docker/redis:/var/lib/redis redis:6.2-alpine
+#      - name: Launch Redis
+#        run: docker exec
       - run: docker ps -a
       - name: Launch container
         run: docker run --name inbound -dp 8080:8080 --env-file env.sample inbound
