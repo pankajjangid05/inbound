@@ -18,7 +18,7 @@ jobs:
       - name: Create Redis Container
         run: docker run --name redis -d --restart=always --publish 6379:6379 --volume /srv/docker/redis:/var/lib/redis redis:6.2-alpine
       - name: Create Cassandra Container
-        run: docker run -d --name cassandra-docker -p 9042:9092 cassandra
+        run: docker run -d --name cassandra-docker -p 9042:9042 cassandra
 #      - name: Launch Redis
 #        run: docker exec
       - run: docker ps -a
