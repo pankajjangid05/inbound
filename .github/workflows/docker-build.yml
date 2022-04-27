@@ -19,8 +19,7 @@ jobs:
         run: docker run --name redis -d --restart=always --publish 6379:6379 --volume /srv/docker/redis:/var/lib/redis redis:6.2-alpine
       - name: Create Cassandra Container
         run: docker run -d --name cassandra-docker -p 9042:9042 cassandra
-#      - name: Launch Redis
-#        run: docker exec
+      - run: docker logs -f cassandra-docker
       - run: docker ps -a
       - name: Launch container
         run: docker run --name inbound -dp 8080:8080 --env-file env.sample inbound
