@@ -25,6 +25,7 @@ jobs:
 #      - run: docker exec cassandra-docker /bin/sh -c "cqlsh -f /query.cql"
       - run: docker images -a
       - run: docker ps -a
+      - run: docker port cassandra-docker 9042/tcp
       - name: Launch container
         run: docker run --name inbound -dp 8080:8080 --env-file env.sample inbound
         timeout-minutes: 10
