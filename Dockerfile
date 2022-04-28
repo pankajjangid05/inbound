@@ -1,3 +1,10 @@
+# Cassandra Config
+FROM cassandra:latest
+COPY /query.cql /query.cql
+RUN cat /query.cql
+RUN cqlsh -f /query.cql
+CMD ["cassandra", "-f"]
+
 # Build stage
 FROM maven:3.6.0-jdk-11-slim AS build
 ENV HOME=/home/app

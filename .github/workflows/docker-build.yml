@@ -18,14 +18,11 @@ jobs:
       - name: Create Redis Container
         run: docker run --name redis -d --restart=always --publish 6379:6379 --volume /srv/docker/redis:/var/lib/redis redis:6.2-alpine
       - name: Create Cassandra Container
-        run: docker build -t cassandra:latest -f Dockerfile_CAS
 #        run: docker run -d --restart=always -p 9042:9042 -i -t cassandra:latest
-#        run: docker run -d --name cassandra-docker -p 9042:9042 cassandra:latest
-#      - run: docker exec $CASSANDRA_NAME cqlsh  -f ./create_keyspace.cql
-      #      - name: Run Query
-#        run:
+        run: docker run -d --name cassandra-docker -p 9042:9042 cassandra:latest
+#      - run: docker cp query.cql cassandra-docker:/query.cql
+      - run: docker exec cassandra-docker /bin/sh -c "cqlsh -f /query.cql"
 #      - run: docker logs -f cassandra-docker
-      - run: docker images -a
       - run: docker ps -a
       - name: Launch container
         run: docker run --name inbound -dp 8080:8080 --env-file env.sample inbound
