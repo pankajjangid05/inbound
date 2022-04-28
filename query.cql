@@ -1,0 +1,2 @@
+CREATE KEYSPACE IF NOT EXISTS testkeyspace WITH durable_writes = true AND replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
+CREATE TABLE IF NOT EXISTS testkeyspace.XMessage(id uuid,userId text, fromId text, channel text, provider text, timestamp timestamp, messageState text, xMessage text, app text, auxData text, messageId text, replyId text, causeId text, PRIMARY KEY ((userId,fromId), timestamp)) WITH CLUSTERING ORDER BY (timestamp DESC);
