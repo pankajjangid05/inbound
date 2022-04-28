@@ -19,7 +19,7 @@ jobs:
 #        run: docker run --name redis -d --restart=always --publish 6379:6379 --volume /srv/docker/redis:/var/lib/redis redis:6.2-alpine
       - name: Create Cassandra Container
 #        run: docker run -d --restart=always -p 9042:9042 -i -t cassandra:latest
-        run: docker run -d --name cassandra-docker -p 9042:9042 cassandra:latest
+        run: docker run -d --name cassandra-docker -p 127.0.0.1:9042:9042 -p 127.0.0.1:9160:9160 cassandra:latest
 #      - run: docker logs -f --follow cassandra-docker
 #      - run: docker cp query.cql cassandra-docker:/query.cql
 #      - run: docker exec cassandra-docker /bin/sh -c "cqlsh -f /query.cql"
