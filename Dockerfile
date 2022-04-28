@@ -2,7 +2,6 @@
 FROM cassandra:latest
 COPY /query.cql /query.cql
 RUN cat /query.cql
-RUN cqlsh -f /query.cql
 CMD ["cassandra", "-f"]
 
 # Build stage
