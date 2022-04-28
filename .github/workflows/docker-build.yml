@@ -20,7 +20,7 @@ jobs:
       - name: Create Cassandra Container
 #        run: docker run -d --restart=always -p 9042:9042 -i -t cassandra:latest
         run: docker run -d --name cassandra-docker -p 9042:9042 cassandra:latest
-      - run: docker cp ../query.cql cassandra-docker:/query.cql
+      - run: docker cp query.cql cassandra-docker:/query.cql
       - run: docker exec cassandra-docker /bin/sh -c "cqlsh -f /query.cql"
 #      - run: docker logs -f cassandra-docker
       - run: docker ps -a
