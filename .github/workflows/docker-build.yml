@@ -23,6 +23,7 @@ jobs:
       #      - name: Run Query
 #        run:
 #      - run: docker logs -f cassandra-docker
+      - run: docker images -a
       - run: docker ps -a
       - name: Launch container
         run: docker run --name inbound -dp 8080:8080 --env-file env.sample inbound
