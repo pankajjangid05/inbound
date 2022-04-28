@@ -2,7 +2,8 @@
 FROM cassandra:latest
 COPY /query.cql /query.cql
 RUN cat /query.cql
-CMD ["cassandra", "-f"]
+EXPOSE 9042
+CMD ["cassandra", "-f", "cqlsh -f /query.cql"]
 
 # Build stage
 FROM maven:3.6.0-jdk-11-slim AS build
