@@ -36,3 +36,8 @@ COPY --from=build $HOME/target/*.jar app.jar
 
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","app.jar"]
+
+
+# Cassandra Config
+FROM cassandra:latest
+CMD ["cassandra", "-f"]

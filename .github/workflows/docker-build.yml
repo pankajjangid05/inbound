@@ -17,10 +17,10 @@ jobs:
           docker build . --file Dockerfile --build-arg username=${{ secrets.USERNAME }} --build-arg token=${{ secrets.TOKEN }} --tag inbound
       - name: Create Redis Container
         run: docker run --name redis -d --restart=always --publish 6379:6379 --volume /srv/docker/redis:/var/lib/redis redis:6.2-alpine
-      - name: Create Cassandra Container
-        run: docker run -d --name cassandra-docker -p 9042:9042 cassandra:latest && docker exec -it cassandra-docker bash
-      - run: cqlsh
-#      - name: Run Query
+#      - name: Create Cassandra Container
+#        run: docker run -d --name cassandra-docker -p 9042:9042 cassandra:latest
+#      - run: docker exec $CASSANDRA_NAME cqlsh  -f ./create_keyspace.cql
+      #      - name: Run Query
 #        run:
 #      - run: docker logs -f cassandra-docker
       - run: docker ps -a
