@@ -26,10 +26,9 @@ jobs:
       - run: docker images -a
       - run: docker ps -a
       - run: docker network ls
-      - run: docker exec -ti cassandra-docker ping inbound
       - run: docker port cassandra-docker 9042/tcp
       - name: Launch container
-        run: docker run --name inbound -dp 8080:8080 --env-file env.sample inbound
+        run: docker run --name inbound --link cassandra-docker:cassandra-docker -dp 8080:8080 --env-file env.sample inbound
         timeout-minutes: 10
       - run: docker ps -a
       - run: docker logs -f inbound
