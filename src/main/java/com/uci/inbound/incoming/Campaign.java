@@ -11,6 +11,7 @@ import com.uci.dao.repository.XMessageRepository;
 import com.uci.dao.utils.XMessageDAOUtils;
 import com.uci.utils.BotService;
 import com.uci.utils.bot.util.BotUtil;
+import com.uci.utils.dto.Adapter;
 import com.uci.utils.kafka.SimpleProducer;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.*;
@@ -57,32 +58,40 @@ public class Campaign {
                     SenderReceiverInfo from = new SenderReceiverInfo().builder().userID("9876543210").deviceType(DeviceType.PHONE).build();
                     SenderReceiverInfo to = new SenderReceiverInfo().builder().userID("admin").build();
                     MessageId msgId = new MessageId().builder().channelMessageId(UUID.randomUUID().toString()).replyId("7597185708").build();
-                    XMessagePayload payload = new XMessagePayload().builder().text(BotUtil.getBotNodeData(data, "startingMessage")).build();
-                    JsonNode adapter = BotUtil.getBotNodeAdapter(data);
-                    log.info("adapter:" + adapter + ", node:" + data);
-                    if (adapter.path("provider").asText().equals("firebase")) {
+                    XMessagePayload payload = new XMessagePayload().builder().text(data.getStartingMessage() == null ? null : data.getStartingMessage()).build();
+
+                    Adapter adapterDto = null;
+                    if (data.getLogicIDs() != null && data.getLogicIDs().get(0) != null && data.getLogicIDs().get(0).getAdapter() != null) {
+                        adapterDto = data.getLogicIDs().get(0).getAdapter();
+                    }
+
+//                    JsonNode adapter = BotUtil.getBotNodeAdapter(data);
+
+//                    data.getLogicIDs().get(0)
+                    log.info("adapter:" + adapterDto + ", node:" + data);
+                    if (adapterDto.getProvider() != null && adapterDto.getProvider().equalsIgnoreCase("firebase")) {
                         from.setDeviceType(DeviceType.PHONE_FCM);
-                    } else if (adapter.path("provider").asText().equals("pwa")) {
+                    } else if (adapterDto.getProvider() != null && adapterDto.getProvider().equalsIgnoreCase("pwa")) {
                         from.setDeviceType(DeviceType.PHONE_PWA);
                     }
 
                     Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 
                     XMessage xmsg = new XMessage().builder()
-                            .botId(UUID.fromString(BotUtil.getBotNodeData(data, "id")))
-                            .app(BotUtil.getBotNodeData(data, "name"))
+                            .botId(UUID.fromString(data.getId() == null ? null : data.getId()))
+                            .app(data.getName() == null ? null : data.getName())
                             .adapterId(BotUtil.getBotNodeAdapterId(data))
                             .sessionId(BotUtil.newConversationSessionId())
-                            .ownerId(BotUtil.getBotNodeData(data, "ownerID"))
-                            .ownerOrgId(BotUtil.getBotNodeData(data, "ownerOrgID"))
+                            .ownerId(data.getOwnerID() == null ? null : data.getOwnerID())
+                            .ownerOrgId(data.getOwnerOrgID() == null ? null : data.getOwnerOrgID())
                             .from(from)
                             .to(to)
                             .messageId(msgId)
                             .messageState(XMessage.MessageState.REPLIED)
                             .messageType(XMessage.MessageType.TEXT)
                             .payload(payload)
-                            .providerURI(adapter.path("provider").asText())
-                            .channelURI(adapter.path("channel").asText())
+                            .providerURI(adapterDto.getProvider())
+                            .channelURI(adapterDto.getChannel())
                             .timestamp(timestamp.getTime())
                             .tags(BotUtil.getBotNodeTags(data))
                             .build();

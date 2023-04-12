@@ -13,6 +13,7 @@ import com.uci.dao.utils.XMessageDAOUtils;
 import com.uci.utils.BotService;
 import com.uci.utils.bot.util.BotUtil;
 import com.uci.utils.cache.service.RedisCacheService;
+import com.uci.utils.dto.Result;
 import com.uci.utils.kafka.SimpleProducer;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +51,7 @@ public class XMsgProcessingUtil {
 
     /**
      * Process messages received from inbound processed kafka topic
+     *
      * @throws JsonProcessingException
      */
     public void process() throws JsonProcessingException {
@@ -60,23 +62,23 @@ public class XMsgProcessingUtil {
                     .doOnError(genericError("Error in converting to XMessage by Adapter"))
                     .subscribe(xmsg -> {
                         /* If Message State is replied, process as message sent
-                        * Else if message state is sent, print error message
-                        * Else if message state is deliverd/read, send the event to report topic
-                        * Else print invalid message error */
-                        if(xmsg.getMessageState().equals(XMessage.MessageState.REPLIED)) {
+                         * Else if message state is sent, print error message
+                         * Else if message state is deliverd/read, send the event to report topic
+                         * Else print invalid message error */
+                        if (xmsg.getMessageState().equals(XMessage.MessageState.REPLIED)) {
                             // For PWA BotId will be applicationId
                             fetchBotData(xmsg.getPayload().getText(), xmsg.getFrom(), xmsg.getApp())
                                     .subscribe(result -> {
                                         log.info("fetchBotData response:" + result);
                                         /** If bot exists & bot name exists, proceed
-                                        * Else print error message
-                                        */
+                                         * Else print error message
+                                         */
                                         if (result.get("botExists").toString().equals("true")) {
                                             /** If bot is valid, process message
                                              * Else proceed for invalid bot
                                              */
                                             if (result.get("isBotValid").toString().equals("true")
-                                                    && result.get("appName") != null){
+                                                    && result.get("appName") != null) {
                                                 log.info("Process bot message");
                                                 processBotMessage(xmsg, result.get("appName").toString(),
                                                         result.get("sessionId"), result.get("ownerOrgId"),
@@ -89,14 +91,14 @@ public class XMsgProcessingUtil {
                                                  * Else if bot check not required errorMsg & BotNode exists, process invalid bot message
                                                  * Else print error message
                                                  */
-                                                if(result.get("checkIsBotValid").toString().equals("true")
+                                                if (result.get("checkIsBotValid").toString().equals("true")
                                                         && result.get("appName") != null) {
                                                     log.info("Validate Bot");
                                                     validateBot(result.get("appName").toString(), result.get("sessionId").toString())
                                                             .subscribe(res -> {
                                                                 log.info("ValidateBot response:" + res);
                                                                 /* If bot is invalid, send error message to outbound, else process message */
-                                                                if(res.get("botExists").toString().equals("true")) {
+                                                                if (res.get("botExists").toString().equals("true")) {
                                                                     if (res.get("isBotValid").toString().equals("true")) {
                                                                         log.info("Process bot message after validation.");
                                                                         processBotMessage(xmsg, res.get("appName").toString(),
@@ -108,31 +110,31 @@ public class XMsgProcessingUtil {
                                                                         processInvalidBotMessage(xmsg, (ObjectNode) res.get("botNode"), res.get("errorMsg").toString());
                                                                     }
                                                                 } else {
-                                                                    processInvalidBotMessage(xmsg, null, "Bot does not exists.");
+                                                                    processInvalidBotMessage(xmsg, (ObjectNode) null, "Bot does not exists.");
                                                                 }
 
                                                             });
                                                 } else if (result.get("checkIsBotValid").toString().equals("false")
-                                                        && result.get("botNode") != null && result.get("errorMsg") != null ) {
+                                                        && result.get("result") != null && result.get("errorMsg") != null) {
                                                     log.info("Bot is invalid");
-                                                    processInvalidBotMessage(xmsg, (ObjectNode) result.get("botNode"), result.get("errorMsg").toString());
+                                                    processInvalidBotMessage(xmsg, (Result) result.get("result"), result.get("errorMsg").toString());
                                                 } else {
-                                                    processInvalidBotMessage(xmsg, null, "Bot is invalid.");
+                                                    processInvalidBotMessage(xmsg, (ObjectNode) null, "Bot is invalid.");
                                                 }
                                             }
                                         } else {
-                                            processInvalidBotMessage(xmsg, null, "Bot does not exists");
+                                            processInvalidBotMessage(xmsg, (ObjectNode) null, "Bot does not exists");
                                         }
                                     });
-                        } else if(xmsg.getMessageState().equals(XMessage.MessageState.DELIVERED)
+                        } else if (xmsg.getMessageState().equals(XMessage.MessageState.DELIVERED)
                                 || xmsg.getMessageState().equals(XMessage.MessageState.READ)) {
                             getSentXMessageForReport(xmsg.getMessageState(), xmsg.getMessageId().getChannelMessageId(), xmsg.getFrom().getUserID())
                                     .doOnError(genericError("Exception in sent latest xMessage for received receipt request."))
                                     .subscribe(dataMap -> {
-                                        if(dataMap.get("proceed") != null && dataMap.get("proceed").toString().equals("true")) {
+                                        if (dataMap.get("proceed") != null && dataMap.get("proceed").toString().equals("true")) {
                                             XMessageDAO xMessageLast = (XMessageDAO) dataMap.get("xMessageDao");
-                                            if(xMessageLast.getApp() != null && !xMessageLast.getApp().isEmpty()) {
-                                                log.info("App name found: "+xMessageLast.getApp()+" for user id: "+xmsg.getFrom().getUserID());
+                                            if (xMessageLast.getApp() != null && !xMessageLast.getApp().isEmpty()) {
+                                                log.info("App name found: " + xMessageLast.getApp() + " for user id: " + xmsg.getFrom().getUserID());
                                                 xmsg.setApp(xMessageLast.getApp());
                                                 xmsg.setSessionId(xMessageLast.getSessionId());
                                                 xmsg.setOwnerOrgId(xMessageLast.getOwnerOrgId());
@@ -146,11 +148,11 @@ public class XMsgProcessingUtil {
                                                             sendEventToKafka(xmsg);
                                                         });
                                             } else {
-                                                log.error("App name not found for user id: "+xmsg.getFrom().getUserID()+" for sent/delivered/read message");
+                                                log.error("App name not found for user id: " + xmsg.getFrom().getUserID() + " for sent/delivered/read message");
                                             }
                                         } else {
-                                            if(dataMap.get("message") != null && !dataMap.get("message").toString().isEmpty()) {
-                                                log.error("Error message : "+dataMap.get("message").toString());
+                                            if (dataMap.get("message") != null && !dataMap.get("message").toString().isEmpty()) {
+                                                log.error("Error message : " + dataMap.get("message").toString());
                                             }
                                         }
                                     });
@@ -160,21 +162,22 @@ public class XMsgProcessingUtil {
                     });
 
         } catch (JAXBException e) {
-        	log.info("Error Message: "+e.getMessage());
+            log.info("Error Message: " + e.getMessage());
             e.printStackTrace();
-        } catch (NullPointerException e){
-            log.error("Error Message: "+e.getMessage());
+        } catch (NullPointerException e) {
+            log.error("Error Message: " + e.getMessage());
         }
     }
 
     /**
      * Process Bot Invalid Message - Send bot invalid message to outbound to process
+     *
      * @param xmsg
      * @param botNode
      * @param message
      */
     private void processInvalidBotMessage(XMessage xmsg, ObjectNode botNode, String message) {
-        if(botNode != null) {
+        if (botNode != null) {
             xmsg.setBotId(UUID.fromString(BotUtil.getBotNodeData(botNode, "id")));
             xmsg.setApp(BotUtil.getBotNodeData(botNode, "name"));
             xmsg.setOwnerId(BotUtil.getBotNodeData(botNode, "ownerID"));
@@ -186,55 +189,85 @@ public class XMsgProcessingUtil {
 
         XMessageDAO currentMessageToBeInserted = XMessageDAOUtils.convertXMessageToDAO(xmsg);
 
-    	xMsgRepo.insert(currentMessageToBeInserted)
-            .doOnError(genericError("Error in inserting current message"))
-            .subscribe(xMessageDAO -> {
-                /* Set to user to from user */
-                SenderReceiverInfo to = SenderReceiverInfo.builder().userID(xmsg.getFrom().getUserID()).build();
-                xmsg.setTo(to);
-                /* Set from to admin user */
-                SenderReceiverInfo from = xmsg.getFrom();
-                from.setUserID(BotUtil.adminUserId);
-                xmsg.setFrom(from);
-                XMessagePayload payload = XMessagePayload.builder().text(message).build();
-                xmsg.setPayload(payload);
-            	sendEventToOutboundKafka(xmsg);
-            });
+        xMsgRepo.insert(currentMessageToBeInserted)
+                .doOnError(genericError("Error in inserting current message"))
+                .subscribe(xMessageDAO -> {
+                    /* Set to user to from user */
+                    SenderReceiverInfo to = SenderReceiverInfo.builder().userID(xmsg.getFrom().getUserID()).build();
+                    xmsg.setTo(to);
+                    /* Set from to admin user */
+                    SenderReceiverInfo from = xmsg.getFrom();
+                    from.setUserID(BotUtil.adminUserId);
+                    xmsg.setFrom(from);
+                    XMessagePayload payload = XMessagePayload.builder().text(message).build();
+                    xmsg.setPayload(payload);
+                    sendEventToOutboundKafka(xmsg);
+                });
     }
-    
+
+    private void processInvalidBotMessage(XMessage xmsg, Result result, String message) {
+        if (result != null) {
+            xmsg.setBotId(UUID.fromString(result.getId() == null ? null : result.getId()));
+            xmsg.setApp(result.getName() == null ? null : result.getName());
+            xmsg.setOwnerId(result.getOwnerID() == null ? null : result.getOwnerID());
+            xmsg.setOwnerOrgId(result.getOwnerOrgID() == null ? null : result.getOwnerOrgID());
+            xmsg.setSessionId(BotUtil.newConversationSessionId());
+            xmsg.setAdapterId(BotUtil.getBotNodeAdapterId(result));
+            xmsg.setTags(BotUtil.getBotNodeTags(result));
+        }
+
+        XMessageDAO currentMessageToBeInserted = XMessageDAOUtils.convertXMessageToDAO(xmsg);
+
+        xMsgRepo.insert(currentMessageToBeInserted)
+                .doOnError(genericError("Error in inserting current message"))
+                .subscribe(xMessageDAO -> {
+                    /* Set to user to from user */
+                    SenderReceiverInfo to = SenderReceiverInfo.builder().userID(xmsg.getFrom().getUserID()).build();
+                    xmsg.setTo(to);
+                    /* Set from to admin user */
+                    SenderReceiverInfo from = xmsg.getFrom();
+                    from.setUserID(BotUtil.adminUserId);
+                    xmsg.setFrom(from);
+                    XMessagePayload payload = XMessagePayload.builder().text(message).build();
+                    xmsg.setPayload(payload);
+                    sendEventToOutboundKafka(xmsg);
+                });
+    }
+
     /**
      * Process Bot Message - send message to orchestrator for processing
+     *
      * @param xmsg
      * @param appName
      */
     private void processBotMessage(XMessage xmsg, String appName, Object sessionId, Object ownerOrgId,
                                    Object ownerId, Object adapterId, Object botUuid,
                                    Object tags) {
-    	xmsg.setApp(appName);
-        if(sessionId != null && !sessionId.toString().isEmpty()) {
+        xmsg.setApp(appName);
+        if (sessionId != null && !sessionId.toString().isEmpty()) {
             xmsg.setSessionId(UUID.fromString(sessionId.toString()));
         }
-        if(ownerOrgId != null && !ownerOrgId.toString().isEmpty()) {
+        if (ownerOrgId != null && !ownerOrgId.toString().isEmpty()) {
             xmsg.setOwnerOrgId(ownerOrgId.toString());
         }
-        if(ownerId != null && !ownerId.toString().isEmpty()) {
+        if (ownerId != null && !ownerId.toString().isEmpty()) {
             xmsg.setOwnerId(ownerId.toString());
         }
-        if(adapterId != null && !adapterId.toString().isEmpty()) {
+        if (adapterId != null && !adapterId.toString().isEmpty()) {
             xmsg.setAdapterId(adapterId.toString());
         }
-	    if(botUuid != null && !botUuid.toString().isEmpty()) {
+        if (botUuid != null && !botUuid.toString().isEmpty()) {
             xmsg.setBotId(UUID.fromString(botUuid.toString()));
         }
-        if(tags != null) {
-            try{
+        if (tags != null) {
+            try {
                 xmsg.setTags((List<String>) tags);
-            } catch(Exception ex) {
-                log.error("Exception in processBotMessage while converting tags: "+ex.getMessage());
+            } catch (Exception ex) {
+                log.error("Exception in processBotMessage while converting tags: " + ex.getMessage());
             }
         }
         XMessageDAO currentMessageToBeInserted = XMessageDAOUtils.convertXMessageToDAO(xmsg);
-    	if (isCurrentMessageNotAReply(xmsg)) {
+        if (isCurrentMessageNotAReply(xmsg)) {
             String whatsappId = xmsg.getMessageId().getChannelMessageId();
             getLatestXMessage(xmsg.getFrom().getUserID(), XMessage.MessageState.REPLIED)
                     .doOnError(genericError("Error in getting last message"))
@@ -267,49 +300,50 @@ public class XMsgProcessingUtil {
 
     /**
      * Validate Bot & return appname & other bot data if validated, else return error message
+     *
      * @param botName
      * @return
      */
     private Mono<Map<String, Object>> validateBot(String botName, String sessionId) {
-    	Map<String, Object> dataMap = new HashMap<>();
+        Map<String, Object> dataMap = new HashMap<>();
         try {
-    		return botService.getBotNodeFromName(botName)
-            		.flatMap(new Function<JsonNode, Mono<? extends Map<String, Object>>>() {
+            return botService.getBotNodeFromName(botName)
+                    .flatMap(new Function<Result, Mono<? extends Map<String, Object>>>() {
                         @Override
-                        public Mono<Map<String, Object>> apply(JsonNode botNode) {
-                        	log.info("validateBot botNode:"+botNode);
-                        	if(botNode != null && botNode.path("name") != null
-                                    && !botNode.path("name").asText().isEmpty()) {
-                        		String botValid= BotUtil.getBotValidFromJsonNode(botNode);
-                            	if(!botValid.equals("true")) {
+                        public Mono<Map<String, Object>> apply(Result result) {
+                            log.info("validateBot result:" + result);
+                            if (result != null && result.getName() != null && !result.getName().isEmpty()) {
+                                String botValid = BotUtil.getBotValidFromResult(result);
+                                if (!botValid.equals("true")) {
                                     dataMap.put("botExists", "true");
                                     dataMap.put("isBotValid", "false");
-                                    dataMap.put("botNode", botNode);
+//                                    dataMap.put("botNode", null);
+                                    dataMap.put("result", result);
                                     dataMap.put("errorMsg", botValid);
                                     return Mono.just(dataMap);
-    							} else {
+                                } else {
                                     dataMap.put("botExists", "true");
                                     dataMap.put("isBotValid", "true");
-                                    dataMap.put("appName", BotUtil.getBotNodeData(botNode, "name"));
+                                    dataMap.put("appName", result.getName() == null ? null : result.getName());
                                     dataMap.put("sessionId", sessionId);
-                                    dataMap.put("ownerOrgId", BotUtil.getBotNodeData(botNode, "ownerOrgID"));
-                                    dataMap.put("ownerId", BotUtil.getBotNodeData(botNode, "ownerID"));
-                                    dataMap.put("adapterId", BotUtil.getBotNodeAdapterId(botNode));
-				                    dataMap.put("botUuid", BotUtil.getBotNodeData(botNode, "id"));
-                                    dataMap.put("tags", BotUtil.getBotNodeTags(botNode));
+                                    dataMap.put("ownerOrgId", result.getOwnerOrgID() == null ? null : result.getOwnerOrgID());
+                                    dataMap.put("ownerId", result.getOwnerID() == null ? null : result.getOwnerID());
+                                    dataMap.put("adapterId", BotUtil.getBotNodeAdapterId(result));
+                                    dataMap.put("botUuid", result.getId() == null ? null : result.getId());
+                                    dataMap.put("tags", BotUtil.getBotNodeTags(result));
                                     return Mono.just(dataMap);
                                 }
-                        	} else {
+                            } else {
                                 dataMap.put("botExists", "false");
                                 return Mono.just(dataMap);
                             }
                         }
                     });
-    	} catch (Exception e) {
-            log.error("Exception in validateBot: "+e.getMessage());
+        } catch (Exception e) {
+            log.error("Exception in validateBot: " + e.getMessage());
             dataMap.put("botExists", "false");
             return Mono.just(dataMap);
-    	}
+        }
     }
 
 
@@ -331,19 +365,19 @@ public class XMsgProcessingUtil {
             kafkaProducer.send(topicFailure, inboundMessage.toString());
         }
 
-        if(xmsg.getMessageState().equals(XMessage.MessageState.REPLIED)) {
+        if (xmsg.getMessageState().equals(XMessage.MessageState.REPLIED)) {
             kafkaProducer.send(topicSuccess, xmessage);
         } else {
             kafkaProducer.send(topicReport, xmessage);
         }
 
     }
-    
+
     private void sendEventToOutboundKafka(XMessage xmsg) {
         String xmessage = null;
         try {
             xmessage = xmsg.toXML();
-            log.info("xmessage: "+xmessage);
+            log.info("xmessage: " + xmessage);
         } catch (JAXBException e) {
 //            kafkaProducer.send(topicFailure, inboundMessage.toString());
         }
@@ -357,13 +391,13 @@ public class XMsgProcessingUtil {
                 .doOnError(genericError(String.format("Unable to find previous Message for userID %s", userID)))
                 .collectList()
                 .map(xMessageDAOS -> {
-                	if (xMessageDAOS.size() > 0) {
+                    if (xMessageDAOS.size() > 0) {
                         List<XMessageDAO> filteredList = new ArrayList<>();
                         for (XMessageDAO xMessageDAO : xMessageDAOS) {
-                        	if (xMessageDAO.getMessageState().equals(messageState.name())) {
-                            	filteredList.add(xMessageDAO);
+                            if (xMessageDAO.getMessageState().equals(messageState.name())) {
+                                filteredList.add(xMessageDAO);
                             }
-                                
+
                         }
                         if (filteredList.size() > 0) {
                             filteredList.sort(Comparator.comparing(XMessageDAO::getTimestamp));
@@ -376,55 +410,55 @@ public class XMsgProcessingUtil {
     }
 
     /**
-     * Find bot from starting message/last message, 
+     * Find bot from starting message/last message,
      * or if the bot is already present in the data return that directly as a Mono.
-        * if not found, return error message
-        * else return bot data
+     * if not found, return error message
+     * else return bot data
+     *
      * @param text
      * @param from
      * @return
      */
     private Mono<Map<String, Object>> fetchBotData(String text, SenderReceiverInfo from, String botId) {
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
-        if(botId != null){
-            try{
+        if (botId != null) {
+            try {
                 return botService.getBotNodeFromId(botId)
-                    .flatMap(new Function<JsonNode, Mono<? extends Map<String, Object>>>() {
-                        @Override
-                        public Mono<Map<String, Object>> apply(JsonNode botNode) {
-                            log.info("botNode:"+botNode);
-                                    Map<String, Object> dataMap = new HashMap<>();
-                                    if(botNode != null && !botNode.isEmpty()
-                                        && botNode.path("name") != null && !botNode.path("name").equals("")) {
-                                        String botValid= BotUtil.getBotValidFromJsonNode(botNode);
-                                        if(!botValid.equals("true")) {
-                                            dataMap.put("botExists", "true");
-                                            dataMap.put("isBotValid", "false");
-                                            dataMap.put("checkIsBotValid", "false");
-                                            dataMap.put("botNode", botNode);
-                                            dataMap.put("errorMsg", botValid);
-                                            return Mono.just(dataMap);
-                                        } else {
-                                            return Mono.just(createNewConversationData(botNode));
-                                        }
-                                    } else {
-                                        // Log it here
-                                        log.error("No bot found with this BotId :" + botId);
-                                        dataMap.put("botExists", "false");
+                        .flatMap(new Function<Result, Mono<? extends Map<String, Object>>>() {
+                            @Override
+                            public Mono<Map<String, Object>> apply(Result result) {
+                                log.info("botNode:" + result);
+                                Map<String, Object> dataMap = new HashMap<>();
+                                if (result != null && result.getName() != null && !result.getName().isEmpty()) {
+                                    String botValid = BotUtil.getBotValidFromResult(result);
+                                    if (!botValid.equals("true")) {
+                                        dataMap.put("botExists", "true");
+                                        dataMap.put("isBotValid", "false");
+                                        dataMap.put("checkIsBotValid", "false");
+                                        dataMap.put("result", result);
+//                                        dataMap.put("botNode", botNode);
+                                        dataMap.put("errorMsg", botValid);
                                         return Mono.just(dataMap);
+                                    } else {
+                                        return Mono.just(createNewConversationData(result));
                                     }
-                        }
-                    });
+                                } else {
+                                    // Log it here
+                                    log.error("No bot found with this BotId :" + botId);
+                                    dataMap.put("botExists", "false");
+                                    return Mono.just(dataMap);
+                                }
+                            }
+                        });
             } catch (Exception e) {
-            	log.error("Exception in getCampaignFromStartingMessage :"+e.getMessage());
+                log.error("Exception in getCampaignFromStartingMessage :" + e.getMessage());
                 Map<String, Object> dataMap = new HashMap<>();
                 dataMap.put("botExists", "false");
                 return Mono.just(dataMap);
             }
-        }
-        else if (text != null && text.equals("")) {
+        } else if (text != null && text.equals("")) {
             try {
-            	return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, Map<String, Object>>() {
+                return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, Map<String, Object>>() {
                     @Override
                     public Map<String, Object> apply(XMessageDAO xMessageLast) {
                         return createExistingConversationData(xMessageLast);
@@ -440,32 +474,33 @@ public class XMsgProcessingUtil {
             }
         } else {
             try {
-            	return botService.getBotNodeFromStartingMessage(text)
-                		.flatMap(new Function<JsonNode, Mono<? extends Map<String, Object>>>() {
+                return botService.getBotNodeFromStartingMessage(text)
+                        .flatMap(new Function<Result, Mono<? extends Map<String, Object>>>() {
                             @Override
-                            public Mono<Map<String, Object>> apply(JsonNode botNode) {
-                            	log.info("botNode:"+botNode);
-                            	if(botNode != null && !botNode.isEmpty()
-                                    && botNode.path("name") != null && !botNode.path("name").equals("")) {
-                            		String botValid= BotUtil.getBotValidFromJsonNode(botNode);
-                                    if(!botValid.equals("true")) {
+                            public Mono<Map<String, Object>> apply(Result result) {
+                                log.info("Result : " + result);
+                                if (result != null && result.getName() != null && !result.getName().isEmpty()) {
+                                    String botValid = BotUtil.getBotValidFromResult(result);
+                                    if (!botValid.equals("true")) {
                                         Map<String, Object> dataMap = new HashMap<>();
                                         dataMap.put("botExists", "true");
                                         dataMap.put("isBotValid", "false");
                                         dataMap.put("checkIsBotValid", "false");
-                                        dataMap.put("botNode", botNode);
+//                                        dataMap.put("botNode", null);
+                                        dataMap.put("result", result);
                                         dataMap.put("errorMsg", botValid);
                                         return Mono.just(dataMap);
-    								} else {
-                                        return Mono.just(createNewConversationData(botNode));
+                                    } else {
+                                        return Mono.just(createNewConversationData(result));
                                     }
+
                                 } else {
-                                    log.info("getLatestXMessage user id 1: "+from.getUserID()+", yesterday: "+yesterday+", status: "+XMessage.MessageState.SENT.name());
+                                    log.info("getLatestXMessage user id 1: " + from.getUserID() + ", yesterday: " + yesterday + ", status: " + XMessage.MessageState.SENT.name());
                                     try {
                                         return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, Map<String, Object>>() {
                                             @Override
                                             public Map<String, Object> apply(XMessageDAO xMessageLast) {
-                                                log.info("getApp 1: "+xMessageLast.getApp());
+                                                log.info("getApp 1: " + xMessageLast.getApp());
                                                 return createExistingConversationData(xMessageLast);
                                             }
                                         }).doOnError(genericError("Error in getting latest xmessage when app name empty"));
@@ -473,30 +508,30 @@ public class XMsgProcessingUtil {
                                         return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, Map<String, Object>>() {
                                             @Override
                                             public Map<String, Object> apply(XMessageDAO xMessageLast) {
-                                                log.info("getApp 2: "+xMessageLast.getApp());
+                                                log.info("getApp 2: " + xMessageLast.getApp());
                                                 return createExistingConversationData(xMessageLast);
                                             }
                                         }).doOnError(genericError("Error in getting latest xmessage when app name empty - catch"));
                                     }
-                            	}
+                                }
                             }
                         });
             } catch (Exception e) {
-            	log.error("Exception in getCampaignFromStartingMessage :"+e.getMessage());
-            	log.info("getLatestXMessage user id 2: "+from.getUserID()+", yesterday: "+yesterday+", status: "+XMessage.MessageState.SENT.name());
+                log.error("Exception in getCampaignFromStartingMessage :" + e.getMessage());
+                log.info("getLatestXMessage user id 2: " + from.getUserID() + ", yesterday: " + yesterday + ", status: " + XMessage.MessageState.SENT.name());
                 try {
                     return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, Map<String, Object>>() {
                         @Override
                         public Map<String, Object> apply(XMessageDAO xMessageLast) {
-                        	log.info("getApp 21: "+xMessageLast.getApp());
+                            log.info("getApp 21: " + xMessageLast.getApp());
                             return createExistingConversationData(xMessageLast);
                         }
                     }).doOnError(genericError("Error in getting latest xmessage when exception in getCampaignFromStartingMessage"));
                 } catch (Exception e2) {
-                	return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, Map<String, Object>>() {
+                    return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, Map<String, Object>>() {
                         @Override
                         public Map<String, Object> apply(XMessageDAO xMessageLast) {
-                        	log.info("getApp 22: "+xMessageLast.getApp());
+                            log.info("getApp 22: " + xMessageLast.getApp());
                             return createExistingConversationData(xMessageLast);
                         }
                     }).doOnError(genericError("Error in getting latest xmessage when exception in getCampaignFromStartingMessage - catch"));
@@ -504,40 +539,40 @@ public class XMsgProcessingUtil {
             }
         }
     }
-    
+
     private Mono<XMessageDAO> getLatestXMessage(String userID, LocalDateTime yesterday, String messageState) {
-    	XMessageDAO xMessageDAO = (XMessageDAO) redisCacheService.getXMessageDaoCache(userID);
-	  	if(xMessageDAO != null) {
-	  		log.info("Redis xMsgDao id: "+xMessageDAO.getId()+", dao app: "+xMessageDAO.getApp()
-			+", From id: "+xMessageDAO.getFromId()+", user id: "+xMessageDAO.getUserId()
-			+", status: "+xMessageDAO.getMessageState()+", timestamp: "+xMessageDAO.getTimestamp());
-	  		return Mono.just(xMessageDAO);
-	  	}
-        
-    	return xMsgRepo.findAllByUserIdAndTimestampAfter(userID, yesterday)
+        XMessageDAO xMessageDAO = (XMessageDAO) redisCacheService.getXMessageDaoCache(userID);
+        if (xMessageDAO != null) {
+            log.info("Redis xMsgDao id: " + xMessageDAO.getId() + ", dao app: " + xMessageDAO.getApp()
+                    + ", From id: " + xMessageDAO.getFromId() + ", user id: " + xMessageDAO.getUserId()
+                    + ", status: " + xMessageDAO.getMessageState() + ", timestamp: " + xMessageDAO.getTimestamp());
+            return Mono.just(xMessageDAO);
+        }
+
+        return xMsgRepo.findAllByUserIdAndTimestampAfter(userID, yesterday)
                 .collectList()
                 .map(new Function<List<XMessageDAO>, XMessageDAO>() {
                     @Override
                     public XMessageDAO apply(List<XMessageDAO> xMessageDAOS) {
-                    	log.info("xMsgDaos size: "+xMessageDAOS.size()+", messageState.name: "+XMessage.MessageState.SENT.name());
+                        log.info("xMsgDaos size: " + xMessageDAOS.size() + ", messageState.name: " + XMessage.MessageState.SENT.name());
                         if (xMessageDAOS.size() > 0) {
                             List<XMessageDAO> filteredList = new ArrayList<>();
                             for (XMessageDAO xMessageDAO : xMessageDAOS) {
-                            	if (xMessageDAO.getMessageState().equals(XMessage.MessageState.SENT.name())
-					                || xMessageDAO.getMessageState().equals(XMessage.MessageState.REPLIED.name())) {
-                            		filteredList.add(xMessageDAO);
-                            	}
-                                    
+                                if (xMessageDAO.getMessageState().equals(XMessage.MessageState.SENT.name())
+                                        || xMessageDAO.getMessageState().equals(XMessage.MessageState.REPLIED.name())) {
+                                    filteredList.add(xMessageDAO);
+                                }
+
                             }
                             if (filteredList.size() > 0) {
-                            	filteredList.sort(new Comparator<XMessageDAO>() {
+                                filteredList.sort(new Comparator<XMessageDAO>() {
                                     @Override
                                     public int compare(XMessageDAO o1, XMessageDAO o2) {
                                         return o1.getTimestamp().compareTo(o2.getTimestamp());
                                     }
                                 });
                             }
-                            
+
                             return xMessageDAOS.get(0);
                         }
                         return new XMessageDAO();
@@ -554,22 +589,22 @@ public class XMsgProcessingUtil {
                         List<XMessageDAO> filteredList = new ArrayList<>();
                         if (xMessageDAOS.size() > 0) {
                             xMessageDAOS.forEach(dao -> {
-                                log.info("dao: "+dao.getId());
-                                if(dao.getMessageState().equals(messageState.name())) {
+                                log.info("dao: " + dao.getId());
+                                if (dao.getMessageState().equals(messageState.name())) {
                                     dataMap.put("proceed", "false");
                                     dataMap.put("message", "Receipt for messageState already exists.");
                                     return;
                                 }
-                                if(dao.getMessageState().equals(XMessage.MessageState.SENT.name())) {
+                                if (dao.getMessageState().equals(XMessage.MessageState.SENT.name())) {
                                     filteredList.add(dao);
                                 }
                             });
                         }
 
-                        if(dataMap.get("proceed") != null &&
+                        if (dataMap.get("proceed") != null &&
                                 dataMap.get("proceed").toString().equals("false")) {
                             // use data map generated in the for loop
-                        } else if(filteredList.size() > 0) {
+                        } else if (filteredList.size() > 0) {
                             dataMap.put("proceed", "true");
                             dataMap.put("xMessageDao", filteredList.get(0));
                         } else {
@@ -613,12 +648,28 @@ public class XMsgProcessingUtil {
         dataMap.put("isBotValid", "true");
         dataMap.put("checkIsBotValid", "false");
         dataMap.put("sessionId", BotUtil.newConversationSessionId().toString());
-        dataMap.put("appName", BotUtil.getBotNodeData(botNode,"name"));
-        dataMap.put("ownerOrgId", BotUtil.getBotNodeData(botNode,"ownerOrgID"));
-        dataMap.put("ownerId", BotUtil.getBotNodeData(botNode,"ownerID"));
+        dataMap.put("appName", BotUtil.getBotNodeData(botNode, "name"));
+        dataMap.put("ownerOrgId", BotUtil.getBotNodeData(botNode, "ownerOrgID"));
+        dataMap.put("ownerId", BotUtil.getBotNodeData(botNode, "ownerID"));
         dataMap.put("adapterId", BotUtil.getBotNodeAdapterId(botNode));
-	    dataMap.put("botUuid", BotUtil.getBotNodeData(botNode,"id"));
+        dataMap.put("botUuid", BotUtil.getBotNodeData(botNode, "id"));
         dataMap.put("tags", BotUtil.getBotNodeTags(botNode));
+        return dataMap;
+    }
+
+
+    private Map<String, Object> createNewConversationData(Result result) {
+        Map<String, Object> dataMap = new HashMap();
+        dataMap.put("botExists", "true");
+        dataMap.put("isBotValid", "true");
+        dataMap.put("checkIsBotValid", "false");
+        dataMap.put("sessionId", BotUtil.newConversationSessionId().toString());
+        dataMap.put("appName", result.getName() == null ? null : result.getName());
+        dataMap.put("ownerOrgId", result.getOwnerOrgID() == null ? null : result.getOwnerOrgID());
+        dataMap.put("ownerId", result.getOwnerID() == null ? null : result.getOwnerID());
+        dataMap.put("adapterId", BotUtil.getBotNodeAdapterId(result));
+        dataMap.put("botUuid", result.getId() == null ? null : result.getId());
+        dataMap.put("tags", BotUtil.getBotNodeTags(result));
         return dataMap;
     }
 
